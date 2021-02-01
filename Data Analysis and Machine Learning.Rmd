@@ -1,0 +1,586 @@
+---
+title: "Project"
+author: "Desmond Ojei"
+date: "8/9/2020"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+
+# Setting woring directory
+```{r}
+#Setting working directory
+setwd("C:\\Users\\hp\\Desktop\\ProjectDevelopment\\Project_plots")
+
+
+```
+ 
+Loading library
+
+```{r}
+#Loading library
+library(ggplot2)
+library(caret)
+library(randomForest)
+library(DataExplorer)
+library(corrplot)
+```
+
+## Loading csv.file and data exploration for the "dataset1_given" dataset
+```{r}
+#Using the function "read.csv" to read the csv file
+dataset1_given <- read.csv("HV_RankMatrices_V1_11.csv")
+
+#Using the function "head()" to get the first 10 rows of the dataset 
+head(dataset1_given,10)
+
+
+#Removing Best.AlgorithmLast.Generation
+dataset1_given_2<-dataset1_given[-5]
+
+colnames(dataset1_given_2)
+#Using the  function "dim()" to get the dimension of the dataset
+dim(dataset1_given_2)
+#Using the  str() function to get summary of the dataset
+str(dataset1_given_2)
+
+#Coverting the "Best.AlgorithmLast.Generation" to a factor
+dataset1_given_2$Best.AlgorithmLast.Generation<-as.factor(dataset1_given_2$Best.AlgorithmLast.Generation)
+
+
+#TChecking if the as.factor function  worked
+str(dataset1_given_2)
+
+
+
+
+
+
+
+```
+## Class Distribution 
+The figure below Class Distribution shows the number of distribution for the 3 classes which include (MOEA/D,NSGA-II and equal_performance).As seen, from the total problems of 1200, the MOEA/D algorithm has the  highest number of count (448) when compared to other classes. The NSGA-II has a count of (392) and finally both algorithm performed the same with a count of (360) out of the total problems of (1200).It can be said that the most suitable algorithm to use for the 1200 problems will be the MOEA/D as this algorithm performed the best for most problems.
+```{r}
+#Class distribution 
+ggplot(dataset1_given_2, aes(Best.AlgorithmLast.Generation)) +
+  geom_bar() 
+```
+
+## Finding the proprtion of the class distribution chart
+The functions prop.table() and table () is used to show the percentage of the class distribution.As see, the MOEA/D distribution is 37% of the dataset, the NSGA-II distribution is approximately 33% of the dataset and both had an equal performance of 30% of the dataset.
+
+```{r}
+table(dataset1_given_2$Best.AlgorithmLast.Generation)
+prop.table(table(dataset1_given_2$Best.AlgorithmLast.Generation))
+
+```
+
+## Feature plot  of dataset1_given"
+
+Figure below  shows the feature plots of the independent variables as a function of the 3 classes (i.e.MOEA/D,NSGA-II and equal_performance).The boxplot of the target classes as seen from the  Dimensionality variable shows that when the Dimensionality ranges from 5 -20 ,The choice of algorithm usually tends to be of "equal_Performance".This simply means that  when the value of dimensionality ranges from 5-20, the chances of both "NSGA-II" and "MOEA/D" to perform equally for that problem is high.This "equal_performance"  also have the highest interquartile range as it spreads out more than any other target class factors as this target class factor is said to be the most inconsistent factor. Still considering the Dimensionality variable, when the dimensionality value ranges from 20-30 the chances of the best algorithm suitable for the problem will be the "MOEA/D".Finally, when the dimensionality value is between 5-10, the chances of the best algorithm to use for that problem will the "NSGA-II" as this is the most consistent result for that range of dimensionality value due to the compact interquartile range.The "equal_perfromance also falls in this range as well but the NSGA-II is more consistent in this range of dimensionality values.
+
+
+The boxplot of the target classes as seen from the K-value shows that when the K-value ranges from 1-3, the chances of the best algorithm to use for that problem is the "MOEA/D".On the other hand, when the value of the K-value ranges from 3-5, the chances of both algorithm performing the same (equal_Performance) increases and finally when the K-value falls between 3-6, the chances of the best algorithm to use for those problems will be the "NSGA-II".As seen, the ranges of the 'equal_performance factor and the "NSGA-II" factor intersect and the median of both factors is 4 and they both have a max value of 6.Furthermore, the interquartile range  of the 'NSGA-II" spreads more that that of the "equal_perfromance" which makes it more inconsistent.This will result to both   algorithm(equal_performnce) suitable for the problems which consist of the k- value 3-5.
+
+The seed,count variable simply shws that the gigher the see.count ,NSGA-II will be more likely the most suitable MOEA  algorithm to use.
+
+As seen from the boxplots,the outliers will be ignored as these measurements are important for the analysis of theproject.
+Finally, the Dimensionality value and the K-value have a huge effect on the choice of algorithm to use as seen from the boxplot analysis for the "dataset1_given" dataset.
+
+
+```{r}
+par(mfrow=c(2, 2))
+featurePlot(x=dataset1_given_2[,1:3],y=dataset1_given_2$Best.AlgorithmLast.Generation, plot="box", scales=list(x=list(relation="free"), y=list(relation="free")), col ="blue")
+
+
+```
+
+
+## Machine Learning Result and Analysis for the "dataset1_given"
+### Splitting dataset to training and testing 
+```{r}
+
+#Data is split 80% for training and 20% Ffor testing
+set.seed(1)
+
+TrainingIndex <- createDataPartition(dataset1_given_2$Best.AlgorithmLast.Generation, p=0.8, list = FALSE)
+Training <- dataset1_given_2[TrainingIndex,] # Training Set
+Testing <- dataset1_given_2[-TrainingIndex,] # Test Set
+
+```
+
+### Knn Model for the "dataset1_given"  dataset (without geometric features)
+```{r}
+set.seed(1)
+tr <-trainControl(method="cv", number = 10)# using he cross validation method with 10 folds
+knn.model <- train(Best.AlgorithmLast.Generation~.,data=Training,method="knn",
+            preProcess=c("center", "scale"),
+            tuneGrid=expand.grid(.k=1:10),#testing k value from 1 to 10
+            trControl=tr)
+
+
+```
+
+The figure below  shows values of "k" tested from 1 to 10 and the most suitable k-value chosen was 9 , as this has the highest model optimization of 69.3% accuracy  and 53.7% kappa
+
+```{r}
+print(knn.model)
+
+
+```
+
+```{r}
+plot(knn.model)
+
+```
+
+-- Training Data dataset1_given dataset
+For the training data,the KNN model performed with a Testing - Accuracy :0.7378 with 95% CI : (0.7087, 0.7653).
+From the confusion matix, This 176 instances are correctly classified as class "equal_performance".
+48 instances are classified as "equal_performance" but are actually instances of the class  "MOEA/D".
+64 instances are classified as "equal_performance" but are actually instances of the class "NSGA-II".
+
+56 instances are incorrectly classified as class "MOEA/D" but  actually  belong to the class of "equal_performance".
+295 instances are correctly classified as class  of "MOES/D".
+8 instances are classified as "MOEA/D" but are actually instances of the class  "NSGA-II".
+
+
+58 instances are incorrectly classified as class "NSGA-II" but  actually  belong to the class of "equal_performance".
+18 instances are correctly classified as class  of "MOES/D".
+238 instances are correctly classified as class  of "NSGA-II".
+
+
+
+-- Testing data dataset1_given dataset
+For the unseen data which is also known as the test data, the KNN model performed with a Testing - Accuracy :  0.6695   with 95% CI : (0.6059, 0.7287)
+
+This data consist of 3 predictors or classes as seen (equal_performance, MOEA/D). 
+
+From the confusion matix, This 36 instances are correctly classified as class "equal_performance".
+14 instances are classified as "equal_performance" but are actually instances of the class  "MOEA/D".
+22 instances are classified as "equal_performance" but are actually instances of the class "NSGA-II".
+
+12 instances are incorrectly classified as class "MOEA/D" but  actually  belong to the class of "equal_performance".
+75 instances are correctly classified as class  of "MOES/D".
+2 instance is classified as "MOEA/D" but are actually instances of the class  "NSGA-II".
+
+
+23 instances are incorrectly classified as class "NSGA-II" but  actually  belong to the class of "equal_performance".
+6 instances are correctly classified as class  of "MOES/D".
+49 instances are correctly classified as class  of "NSGA-II".
+
+
+
+```{r}
+set.seed(1)
+#Predicting the training and the test
+trainKnn <- predict(knn.model ,Training)
+testKnn <- predict(knn.model ,Testing)
+#Confusion matrix
+confusionMatrix(trainKnn,Training$Best.AlgorithmLast.Generation,mode="everything")
+
+```
+
+
+```{r}
+set.seed(1)
+confusionMatrix(testKnn,Testing$Best.AlgorithmLast.Generation,mode="everything")
+```
+
+### SVM tunegrid trial for "dataset1_given"
+```{r}
+set.seed(1)
+#Train control function
+tr <-trainControl(method="cv", number = 10)
+#Fitting the model in the train function and setting method to "SVM"
+#
+tr <-trainControl(method="cv", number = 10)
+svm.model_trial <- train(Best.AlgorithmLast.Generation~.,data=Training,
+                   method="svmLinear",
+                   preProcess=c("center", "scale"),
+                   tuneGrid=expand.grid(C=c(0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)),trControl=tr)
+
+
+
+
+
+```
+
+The figure Using the ‘tuneGrid” function for the SVM model, firstly I used a broad range of “C’’ value of (0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000) in other to find the good values. I found out the best value was at “1” which had the highest accuracy of 67.3% and kappa value of 50.5%.
+
+
+```{r}
+print(svm.model_trial)
+
+```
+
+```{r}
+plot(svm.model_trial)
+
+```
+### SVM  for  "dataset1_given" dataset (without geometric features)
+```{r}
+set.seed(1)
+#Train control function
+tr <-trainControl(method="cv", number = 10)
+#Fitting the model in the train function and setting method to "SVM"
+#
+tr <-trainControl(method="cv", number = 10)
+svm.model <- train(Best.AlgorithmLast.Generation~.,data=Training,
+                   method="svmLinear",
+                   preProcess=c("center", "scale"),
+                   tuneGrid=expand.grid(C=c(1:10)),trControl=tr)
+
+
+
+
+
+```
+
+
+After using a broad range of  cost values, I tried using value of (1-10) and this clearly showed that  the most suitable  cost chosen was 1 , as this has the highest model optimization of 67.3% accuracy  and 50.4% kappa
+```{r}
+print(svm.model)
+
+```
+
+
+```{r}
+plot(svm.model)
+
+```
+
+
+-- Training Data dataset1_given dataset
+For the training data,the SVM model performed with a Testing - Accuracy :0.6785 with  95% CI : (0.6479, 0.7079)
+
+From the confusion matix, This 110 instances are correctly classified as class "equal_performance".
+73 instances are classified as "equal_performance" but are actually instances of the class  "MOEA/D".
+105 instances are classified as "equal_performance" but are actually instances of the class "NSGA-II".
+
+47 instances are incorrectly classified as class "MOEA/D" but  actually  belong to the class of "equal_performance".
+306 instances are correctly classified as class  of "MOES/D".
+6 instances are classified as "MOEA/D" but are actually instances of the class  "NSGA-II".
+
+
+55 instances are incorrectly classified as class "NSGA-II" but  actually  belong to the class of "equal_performance".
+23 instances are correctly classified as class  of "MOES/D".
+236 instances are correctly classified as class  of "NSGA-II".
+
+
+-- Testing data dataset1_given dataset
+For the unseen data which is also known as the test data, the SVM model performed with a Testing - Accuracy : 0.6527 with  95% CI : (0.5887, 0.7129)
+
+This data consist of 3 predictors or classes as seen (equal_performance, MOEA/D). 
+
+From the confusion matix, This 31 instances are correctly classified as class "equal_performance".
+15 instances are classified as "equal_performance" but are actually instances of the class  "MOEA/D".
+26 instances are classified as "equal_performance" but are actually instances of the class "NSGA-II".
+
+11 instances are incorrectly classified as class "MOEA/D" but  actually  belong to the class of "equal_performance".
+77 instances are correctly classified as class  of "MOES/D".
+1 instance is classified as "MOEA/D" but are actually instances of the class  "NSGA-II".
+
+
+24 instances are incorrectly classified as class "NSGA-II" but  actually  belong to the class of "equal_performance".
+6 instances are correctly classified as class  of "MOES/D".
+48 instances are correctly classified as class  of "NSGA-II".
+
+As seen from the Confidence Intervals of both the training and testing data, there is no significant difference as they both overlap eachother.  
+
+```{r}
+set.seed(1)
+#Predicting the training and the test
+trainSVM <- predict(svm.model ,Training)
+testSVM <- predict(svm.model ,Testing)
+#Confusion matrix
+confusionMatrix(trainSVM,Training$Best.AlgorithmLast.Generation,mode="everything")
+
+```
+
+
+```{r}
+set.seed(1)
+confusionMatrix(testSVM,Testing$Best.AlgorithmLast.Generation,mode="everything")
+
+
+```
+
+
+# Loading csv.file and data exploration for the "Full_data" dataset
+```{r}
+#Setting working directory
+setwd("C:\\Users\\hp\\Desktop\\ProjectDevelopment\\Project_plots")
+
+Full_data <- read.csv("Full_HV_RankMatrices_V1 (1).csv")
+a<-head(Full_data,10)
+View(a)
+
+colnames(Full_data)
+head(Full_data)
+
+```
+
+```{r}
+
+dim(Full_data)
+
+#Using the "str" function to check for the format of the dataset
+str(Full_data)
+
+
+#Changing the tarhet class to a factor 
+Full_data$BestAlgorithm.LastGeneration.<-as.factor(Full_data$BestAlgorithm.LastGeneration.)
+
+# Summary Statistics on each column
+summary(Full_data)
+```
+The figure below shows that the dataset is complete and do not contain any missing values
+```{r}
+#Checking for missing data on the dataset.. As seen below there is no missing value in the dataset 
+plot_missing(Full_data)
+```
+
+Using the correlation matrix to check for the correlation between the attributes in the datset.
+After carrying out some analysis on this correlation plot, I found out that the K-value has zero correlation to the any other attribute in the dataset.Also, the other correlations seen in  this plot are simply not important.
+
+```{r}
+Full_data_without_class <- cor(Full_data[-8])
+corrplot(Full_data_without_class)
+
+```
+## Feature plot  of Full_data"
+
+Figure below  shows the feature plots of the independent variables as a function of the 3 classes (i.e.MOEA/D,NSGA-II and equal_performance).The perfromance of the "Dimensionality, K-value and seed.count value are not different from the dataset1_given" dataset.
+However, from the geometric descriptor features added such as  "Cnvx.hull.pts" ,"Cnvx.hull.area" ,"Cncv.hull.pts","Cncv.hull.area" , the boxplots do not vary as much as the "Dimensionality and "K-value" which makes it difficult for the machine to use this information to classify the 3 classes in the target class.
+```{r}
+#feature plot
+#This shows the box plot for all the 6 variables as a function to the 2 class
+
+par(mfrow=c(2, 2))
+featurePlot(x=Full_data[,1:7], y=Full_data$BestAlgorithm.LastGeneration., plot="box", scales=list(x=list(relation="free"), y=list(relation="free")), col ="blue")
+
+
+
+```
+
+
+## Machine Learning Result and Analysis for the "Full_data" dataset
+### Splitting dataset to training and testing 
+
+```{r}
+set.seed(1)
+
+TrainingIndex <- createDataPartition(Full_data$BestAlgorithm.LastGeneration., p=0.8, list = FALSE)
+Training2 <- Full_data[TrainingIndex,] # Training Set
+Testing2 <- Full_data[-TrainingIndex,] # Test Set
+
+
+
+
+
+```
+
+### SVM tunegrid trial for "Full_data" dataset
+
+```{r}
+set.seed(1)
+#Train control function
+tr <-trainControl(method="cv", number = 10)
+#Fitting the model in the train function and setting method to "SVM"
+#
+tr <-trainControl(method="cv", number = 10)
+svm.model2_trial <- train(BestAlgorithm.LastGeneration.~.,data=Training2,
+                   method="svmLinear",
+                   preProcess=c("center", "scale"),
+                   tuneGrid=expand.grid(C=c(0.00001,0.0001,0.001,0.01,0.1,1,10,100,1000,10000)),trControl=tr)
+
+```
+The figure Using the ‘tuneGrid” function for the SVM model, firstly I used a broad range of “C’’ value of (0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000) in other to find the good values. I found out the best value was at “1” which had the highest accuracy of 68.2% and kappa value of 51.9%
+
+```{r}
+print(svm.model2_trial)
+
+```
+
+```{r}
+plot(svm.model2_trial)
+```
+### SVM  for  "Full_data" dataset (with geometric features)
+```{r}
+set.seed(1)
+#Train control function
+tr <-trainControl(method="cv", number = 10)
+#Fitting the model in the train function and setting method to "SVM"
+#
+tr <-trainControl(method="cv", number = 10)
+svm.model2 <- train(BestAlgorithm.LastGeneration.~.,data=Training2,
+                   method="svmLinear",
+                   preProcess=c("center", "scale"),
+                   tuneGrid=expand.grid(C=c(1:10)),trControl=tr)
+
+
+```
+
+After using a broad range of  cost values , I tried using value of (1-10) and the figure   clearly showed that  the most suitable  cost chosen was 4 , as this has the highest model optimization of 68.3% accuracy  and 52.1% kappa value.Also, the accuracy from 4 to 6  of the cost value was constant.
+```{r}
+print(svm.model2)
+
+```
+
+```{r}
+plot(svm.model2)
+```
+-- Training Data for Full_data dataset
+For the training data,the SVM model performed with a Testing - Accuracy :0.6889  95% CI : (0.6585, 0.718)
+
+From the confusion matix, This 121 instances are correctly classified as class "equal_performance".
+68 instances are classified as "equal_performance" but are actually instances of the class  "MOEA/D".
+99 instances are classified as "equal_performance" but are actually instances of the class "NSGA-II".
+
+46 instances are incorrectly classified as class "MOEA/D" but  actually  belong to the class of "equal_performance".
+302 instances are correctly classified as class  of "MOES/D".
+11 instances are classified as "MOEA/D" but are actually instances of the class  "NSGA-II".
+
+
+54 instances are incorrectly classified as class "NSGA-II" but  actually  belong to the class of "equal_performance".
+21 instances are correctly classified as class  of "MOES/D".
+239 instances are correctly classified as class  of "NSGA-II".
+
+
+-- Testing data Full_data dataset
+For the unseen data which is also known as the test data, the SVM model performed with a Testing - Accuracy : 0.6444  with  95% CI : (0.5801, 0.705)
+
+This data consist of 3 predictors or classes as seen (equal_performance, MOEA/D). 
+
+From the confusion matix, This 33 instances are correctly classified as class "equal_performance".
+12 instances are classified as "equal_performance" but are actually instances of the class  "MOEA/D".
+27 instances are classified as "equal_performance" but are actually instances of the class "NSGA-II".
+
+13 instances are incorrectly classified as class "MOEA/D" but  actually  belong to the class of "equal_performance".
+75 instances are correctly classified as class  of "MOES/D".
+1 instance is classified as "MOEA/D" but are actually instances of the class  "NSGA-II".
+
+
+25 instances are incorrectly classified as class "NSGA-II" but  actually  belong to the class of "equal_performance".
+7 instances are correctly classified as class  of "MOES/D".
+46 instances are correctly classified as class  of "NSGA-II".
+
+As seen from the Confidence Intervals of both the training and testing data, there is no significant difference as they both overlap eachother.  
+
+```{r}
+set.seed(1)
+#Predicting the training and the test
+trainSVM2<- predict(svm.model2 ,Training2)
+testSVM2 <- predict(svm.model2 ,Testing2)
+#Confusion matrix
+confusionMatrix(trainSVM2,Training2$BestAlgorithm.LastGeneration.,mode="everything")
+
+```
+
+```{r}
+confusionMatrix(testSVM2,Testing2$BestAlgorithm.LastGeneration.,mode="everything")
+
+```
+
+### KNN  for  "Full_data" dataset (with geometric features)
+```{r}
+set.seed(1)
+tr <-trainControl(method="cv", number = 10)
+knn.model2 <- train(BestAlgorithm.LastGeneration.~.,data=Training2,method="knn",
+            preProcess=c("center", "scale"),
+            tuneGrid=expand.grid(.k=1:10),#testing k value from 1 to 10
+            trControl=tr)
+
+
+```
+
+```{r}
+print(knn.model2)
+
+
+```
+
+```{r}
+plot(knn.model2)
+```
+-- Training Data for Full_data dataset
+For the training data,the SVM model performed with a Testing - Accuracy :0.7575 with  95% CI : (0.7292, 0.7843)
+
+From the confusion matix, This 151 instances are correctly classified as class "equal_performance".
+57 instances are classified as "equal_performance" but are actually instances of the class  "MOEA/D".
+80 instances are classified as "equal_performance" but are actually instances of the class "NSGA-II".
+
+26 instances are incorrectly classified as class "MOEA/D" but  actually  belong to the class of "equal_performance".
+319 instances are correctly classified as class  of "MOES/D".
+14 instances are classified as "MOEA/D" but are actually instances of the class  "NSGA-II".
+
+
+40 instances are incorrectly classified as class "NSGA-II" but  actually  belong to the class of "equal_performance".
+16 instances are correctly classified as class  of "MOES/D".
+258 instances are correctly classified as class  of "NSGA-II".
+
+
+-- Testing data Full_data dataset
+For the unseen data which is also known as the test data, the SVM model performed with a Testing - Accuracy :  0.6569  with  95% CI : (0.593, 0.7169)
+This data consist of 3 predictors or classes as seen (equal_performance, MOEA/D). 
+
+From the confusion matix, This 30 instances are correctly classified as class "equal_performance".
+13 instances are classified as "equal_performance" but are actually instances of the class  "MOEA/D".
+29 instances are classified as "equal_performance" but are actually instances of the class "NSGA-II".
+
+7 instances are incorrectly classified as class "MOEA/D" but  actually  belong to the class of "equal_performance".
+77 instances are correctly classified as class  of "MOES/D".
+5 instance is classified as "MOEA/D" but are actually instances of the class  "NSGA-II".
+
+
+20 instances are incorrectly classified as class "NSGA-II" but  actually  belong to the class of "equal_performance".
+8 instances are correctly classified as class  of "MOES/D".
+50 instances are correctly classified as class  of "NSGA-II".
+
+As seen from the Confidence Intervals of both the training and testing data, there is no significant difference as they both overlap eachother.  
+
+```{r}
+set.seed(1)
+#Predicting the training and the test
+trainKnn2 <- predict(knn.model2,Training2)
+testKnn2 <- predict(knn.model2,Testing2)
+#Confusion matrix
+confusionMatrix(trainKnn2,Training2$BestAlgorithm.LastGeneration.,mode="everything")
+```
+
+```{r}
+confusionMatrix(testKnn2,Testing2$BestAlgorithm.LastGeneration.,mode="everything")
+
+```
+
+
+Evaluating the performance of the model
+
+After applying EDA and using classification algorithms,Here i am evaluating the individual performance of the algorithms. The evaluation is based on the accuracies obtained from the various  models.
+As seen from the figure ,The accuarcies of the models overlap eachother, which means thwere is no significant difference in accuracy perfromances.
+```{r}
+#The "with_features" models represents the dataset1_given dataset
+#The "without_features" models represent the Full_data daaset
+Performances_of_model <- resamples(list(knn_Model_without_features = knn.model,knn_Model_with_features=knn.model2,
+SVM_without_features = svm.model , SVM_with_features = knn.model2))
+summary(Performances_of_model)
+
+
+
+dotplot(Performances_of_model)
+
+```
+
+#Variable impotance for each model
+The "Dimensionality" and "K-value" attribute are the most important attributes used for classification followed by the see.count which comes afterwards and the geometric descriptor features has a relatively low influence on the classification algorithms.
+
+```{r}
+#Variable impotance for each model
+varImp(svm.model)
+varImp(svm.model2)
+varImp(knn.model)
+varImp(knn.model2)
+```

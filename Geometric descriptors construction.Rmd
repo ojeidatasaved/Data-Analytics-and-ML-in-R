@@ -1,0 +1,113 @@
+---
+title: "Untitled"
+author: "Desmond Ojei"
+date: "6/23/2020"
+output: html_document
+---
+
+
+```{r}
+library(splancs)
+library(concaveman)
+library(magicfor) 
+```
+
+
+
+```{r}
+
+setwd("C:\\Users\\hp\\Desktop\\ProjectDevelopment\\Original DATASETS PROJECT\\PPSN_2020-5a25aad3acf974a2e398d3c4b4b515d80c98e139\\benchmarkInstances")
+
+
+all_files <- list.files(pattern = "*.csv", recursive = TRUE,full.names = TRUE)
+
+
+
+magic_for(print, silent = TRUE) # call magic_for()
+
+for (files in all_files){
+  
+  
+ data<-read.csv(files,header = FALSE) #Reading csv files
+ data <- data.frame(data)
+ print(data)
+ 
+ 
+
+ 
+ 
+ #Constructing Convex hull
+ paste0("Convex hull")
+ 
+ set.seed(1)
+ data <-data.matrix(data)
+ 
+ ch <- chull(data) # find positions of convex hull 
+ 
+ coo_ <- data[c(ch,ch[1]),] # Closed Polygon
+ 
+ plot(data, pch=19,xlab ="x-axis", ylab ="y-axis")
+ 
+ lines(coo_, col="blue") #plot data
+ 
+ # finding the number of points on the Convex hull plot
+  paste0("Number of points for Convex hull")
+  print(npts(coo_))
+  
+ #using a function to find area of Convex Hull(Shoelace theory)
+ area<-function(coo_){
+    coo_<-rbind(coo_,coo_[1,])
+    x<-coo_[,1]; y<-coo_[,2]; lx<-length(x)
+    sum((x[2:lx]-x[1:lx-1])*(y[2:lx]+y[1:lx-1]))/2
+  }
+
+ print(area(coo_))
+ 
+ #Constructing Concave hull
+ paste0("Concave hull ")
+ 
+ concv<- concaveman(points=data,concavity = 2)
+ plot(data,pch=19,xlab ="x-axis", ylab ="y-axis")
+ lines(concv,col="blue")
+ paste0("Number of points for Concave hull ")
+ print(npts(concv))
+
+#using a function to find area of Concave Hull
+ area<-function(concv){
+     concv<-rbind(concv,concv[1,])
+     x<-concv[,1]; y<-concv[,2]; lx<-length(x)
+     sum((x[2:lx]-x[1:lx-1])*(y[2:lx]+y[1:lx-1]))/2
+   }
+
+  paste0("Concave hull area ")
+  print(area(concv))
+  
+  #put(files,Cnvx.hull.pts,Cnvx.hull.area, Cnv.hull.pts,Cnv.hull.pts )
+
+}
+
+ df_1<- magic_result_as_dataframe()     # get the result
+ colnames( df_1)
+ 
+# renaming the columns 
+
+ names(df_1)[names(df_1) == "npts(coo_)"] <- "Cnvx.hull.pts"
+ names(df_1)[names(df_1) == "area(coo_)"] <- "Cnvx.hull.area"
+ names(df_1)[names(df_1) == "npts(concv)"] <- "Cncv.hull.pts"
+ names(df_1)[names(df_1) == "area(concv)"] <- "Cnv.hull.area"
+ 
+ View(df_1)
+ 
+setwd("C:\\Users\\hp\\Desktop\\ProjectDevelopment")
+
+#Storing names on data frame with the write.csv function
+write.csv (df_1, "Project_2nddata.csv")
+
+View(df_1)
+
+
+```
+
+
+
+```
