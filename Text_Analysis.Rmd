@@ -1,0 +1,259 @@
+---
+title: "Text Analysis"
+author: "Freelancing "
+date: "12/21/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+
+
+
+#Loading libraries
+
+library(gutenbergr) 
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(tidytext)
+library(tidyverse)
+library(tm)
+library(ggplot2)
+library(textdata)
+library(wordcloud)
+
+
+
+
+```
+
+
+```{r}
+# Reading the books chosen for sentiment analysis in the gutenbergr library
+
+# reading the Moby Dick 
+
+moby_book_ref <- gutenberg_works(title == "Moby Dick") 
+moby_book <- gutenberg_download(moby_book_ref$gutenberg_id)
+moby_book
+
+# reading The Wonderful Wizard of Oz Book
+Oz_book_ref <- gutenberg_works(title == "The Wonderful Wizard of Oz") 
+Oz_book <- gutenberg_download(Oz_book_ref$gutenberg_id)
+Oz_book
+
+
+
+```
+
+```{r}
+# Removing the parts of data we dont need using the slice function and then filtering the text data to remove other unuselful info for the analysis
+
+#Moby book filtering
+moby_filtered = moby_book  %>% 
+  slice(-(1:199)) %>% 
+  filter(!text==str_to_upper(text),   # will remove THE PROLOGUE etc.
+         !text==str_to_title(text),   # will remove names/single word lines
+         !str_detect(text, pattern='^(Scene|SCENE)|^(Act|ACT)|^\\[')) %>% 
+  select(-gutenberg_id) %>% 
+  unnest_tokens(sentence, input=text, token='sentences') %>% 
+  mutate(Line_number = 1:n())
+
+#The Wonderful Wizard of Oz filtering
+Oz_book_filtered = Oz_book %>% 
+  slice(-(1:49)) %>% 
+  filter(!text==str_to_upper(text),   # will remove THE PROLOGUE etc.
+         !text==str_to_title(text),   # will remove names/single word lines
+         !str_detect(text, pattern='^(Scene|SCENE)|^(Act|ACT)|^\\[')) %>% 
+  select(-gutenberg_id) %>% 
+  unnest_tokens(sentence, input=text, token='sentences') %>% 
+  mutate(Line_number = 1:n())
+
+
+
+
+```
+
+```{r}
+ # Moby book analysis 
+
+stop_words$word[which(stop_words$word %in% sentiments$word)]
+
+moby_filtered = moby_filtered %>% 
+  unnest_tokens(output=word, input=sentence, token='words') %>%   
+  anti_join(stop_words)
+
+summary(moby_filtered)
+
+
+# Fequency of words in the text (table 1)
+moby_filtered_count <- moby_filtered %>% 
+                            count(word) %>% 
+                            arrange(desc(n))
+
+
+                           
+# word count visualizing the most frequents words on the Moby book
+ wordcloud(words =  moby_filtered_count$word, freq = moby_filtered_count   $n,scale=c(3.5,0.25),
+          max.words=200, colors=brewer.pal(8, "Dark2"))
+                        
+
+# Words and their contribution to the sentiments using the bing (positive or negative  lexicon  
+bing_word_counts <- moby_filtered%>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+
+#Table 1
+print(bing_word_counts)
+
+summary(bing_word_counts)
+
+# words that contribute to the Sentiments (classified as Positive or negative )
+bing_word_counts %>%
+  group_by(sentiment) %>%
+  slice_max(n, n = 10) %>% 
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(x = "Contribution to sentiment",
+       y = NULL)
+
+#Using the nrc lexicon
+nrc_word_counts <- moby_filtered%>%
+  inner_join(get_sentiments("nrc")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+
+#Table 2
+print(nrc_word_counts)
+
+summary(nrc_word_counts)
+
+nrc_word_counts %>%
+  group_by(sentiment) %>%
+  slice_max(n, n = 10) %>% 
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(x = "Contribution to sentiment",
+       y = NULL)
+
+
+
+moby_sentiment = moby_filtered %>% 
+                      inner_join(sentiments)
+                   
+
+
+
+
+#Plot showing the setiment difference in the book 
+ggplot(data = bing_word_counts) +
+  geom_bar(mapping = aes(x = sentiment, fill = sentiment))
+
+ggplot(data = moby_sentiment) +
+  geom_bar(mapping = aes(x = Line_number, fill = sentiment))
+
+
+
+
+
+```
+
+```{r}
+# The Wonderful Wizard of Oz
+
+stop_words$word[which(stop_words$word %in% sentiments$word)]
+
+Oz_book_filtered <-Oz_book_filtered %>% 
+  unnest_tokens(output=word, input=sentence, token='words') %>%   
+  anti_join(stop_words)
+
+summary(Oz_book_filtered)
+
+# Fequency of words in the text (table 1)
+Oz_book_filtered_count <- Oz_book_filtered %>% 
+                            count(word) %>% 
+                            arrange(desc(n))
+                           
+# word count visualization the most frequents words on the Moby book
+ wordcloud(words =  Oz_book_filtered_count$word, freq = Oz_book_filtered_count  $n,scale=c(3.5,0.25),
+          max.words=200, colors=brewer.pal(8, "Dark2"))
+                        
+
+# Words and their contribution to the sentiments using the bing (positive or negative  lexicon  
+bing_word_counts <- Oz_book_filtered%>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+
+#Table 1
+print(bing_word_counts)
+
+summary(bing_word_counts)
+
+
+# words that contribute to the Sentiments(  classified as Positive or negative )
+bing_word_counts %>%
+  group_by(sentiment) %>%
+  slice_max(n, n = 10) %>% 
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(x = "Contribution to sentiment",
+       y = NULL)
+
+#Using the nrc lexicon
+nrc_word_counts <- Oz_book_filtered%>%
+  inner_join(get_sentiments("nrc")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+
+#Table 2
+print(nrc_word_counts)
+
+summary(nrc_word_counts)
+
+nrc_word_counts %>%
+  group_by(sentiment) %>%
+  slice_max(n, n = 10) %>% 
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(x = "Contribution to sentiment",
+       y = NULL)
+
+
+
+Oz_book_sentiment = Oz_book_filtered %>% 
+                      inner_join(sentiments)
+                   
+
+
+#Plot showing the setiment difference in the book 
+ggplot(data = bing_word_counts) +
+  geom_bar(mapping = aes(x = sentiment, fill = sentiment))
+
+ggplot(data = Oz_book_sentiment) +
+  geom_bar(mapping = aes(x = Line_number, fill = sentiment))
+
+
+
+
+
+
+```
+
+
+In this project, after  working on the data processing, an inner join  function was used to join the filtered text data of words with a sentiment lexicon of choice.  This process will only retain words that are also in the particular lexicon chosen. In addition, I used the  "bing" lexicon which classifies words into "Positive or Negative" and also I used the  "nrc" lexicon which categorizes words into the following emotions (Anger, Joy, Surprise,Anticipation, Negative ,trust, disgust, positive, fear and sadness) which is much more detailed  when compared to the bing lexicon.
